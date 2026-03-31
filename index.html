@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>That's BS — Episode Planner · Shine FM 99.9</title>
+  <meta name="description" content="Episode planner for That's BS on Shine FM 99.9" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; background: #080808; }
+    body { overflow: hidden; }
+
+    /* ── Auth Screen ── */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #080808;
+      gap: 32px;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .auth-thats {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 32px;
+      letter-spacing: 6px;
+      color: #f0ede8;
+      opacity: 0.85;
+    }
+
+    .auth-bs {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 56px;
+      color: #d90000;
+      letter-spacing: 7px;
+      text-shadow: 0 0 18px rgba(217,0,0,0.35), 0 0 40px rgba(217,0,0,0.15);
+    }
+
+    .auth-subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #f0a500;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .auth-station {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: #444;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: -20px;
+    }
+
+    #google-signin-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f0ede8;
+      color: #111;
+      border: none;
+      padding: 14px 28px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 12px;
+    }
+
+    #google-signin-btn:hover {
+      background: #fff;
+      box-shadow: 0 0 20px rgba(240,165,0,0.2);
+    }
+
+    #google-signin-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    #auth-error {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: #d90000;
+      display: none;
+    }
+
+    #auth-loading {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #333;
+    }
+
+    /* ── App Loading ── */
+    #app-loading {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #080808;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #2a2a2a;
+    }
+
+    /* ── User badge in topbar ── */
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid #252525;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #555;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-signout {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      background: transparent;
+      border: 1px solid #252525;
+      color: #444;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-signout:hover { color: #f0ede8; border-color: #444; }
+
+    /* ── Save status indicator ── */
+    .save-status {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #333;
+      transition: color 0.3s;
+      white-space: nowrap;
+    }
+
+    .save-status.saving { color: #f0a500; }
+    .save-status.saved  { color: #3a9a5c; }
+    .save-status.error  { color: #d90000; }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Screen (shown before login) -->
+  <div id="auth-screen" style="display:none;">
+    <div class="auth-logo">
+      <span class="auth-thats">THAT'S</span>
+      <span class="auth-bs">BS</span>
+    </div>
+    <div class="auth-subtitle">Episode Planner</div>
+    <div class="auth-station">Shine FM 99.9</div>
+    <button id="google-signin-btn">
+      <!-- Google "G" logo SVG -->
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        <path fill="none" d="M0 0h48v48H0z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <div id="auth-error"></div>
+    <div id="auth-loading" style="display:none;">AUTHENTICATING...</div>
+  </div>
+
+  <!-- Initial page load spinner -->
+  <div id="app-loading">LOADING...</div>
+
+  <!-- React app mounts here -->
+  <div id="root" style="display:none; height:100%;"></div>
+
+  <!-- React + Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp }        from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+                                    from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, remove }
+                                    from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAd8PgW7o-uTZjyaJWUUN-HFAmugcQAPl0",
+      authDomain:        "that-s-bs.firebaseapp.com",
+      databaseURL:       "https://that-s-bs-default-rtdb.firebaseio.com",
+      projectId:         "that-s-bs",
+      storageBucket:     "that-s-bs.firebasestorage.app",
+      messagingSenderId: "209237878609",
+      appId:             "1:209237878609:web:904c09565984e9c33ad570",
+      measurementId:     "G-W801XCCPXD",
+    };
+
+    const app      = initializeApp(firebaseConfig);
+    const auth     = getAuth(app);
+    const db       = getDatabase(app);
+    const provider = new GoogleAuthProvider();
+
+    // ── Expose Firebase helpers to the React app ──
+    window.__firebase = {
+      auth, db, provider,
+      signInWithPopup, signOut, onAuthStateChanged,
+      ref, onValue, set, remove,
+    };
+
+    // ── Auth state bootstrap ──
+    onAuthStateChanged(auth, user => {
+      const authScreen  = document.getElementById("auth-screen");
+      const appLoading  = document.getElementById("app-loading");
+      const root        = document.getElementById("root");
+
+      if (user) {
+        // Signed in — mount the React app
+        authScreen.style.display  = "none";
+        appLoading.style.display  = "none";
+        root.style.display        = "block";
+
+        if (!window.__reactMounted) {
+          window.__reactMounted = true;
+          // Dispatch event so the inline Babel script can mount
+          window.dispatchEvent(new CustomEvent("firebase-ready", { detail: { user } }));
+        } else {
+          // Already mounted; update user
+          window.__setFirebaseUser && window.__setFirebaseUser(user);
+        }
+      } else {
+        // Not signed in — show auth screen
+        appLoading.style.display  = "none";
+        root.style.display        = "none";
+        authScreen.style.display  = "flex";
+      }
+    });
+
+    // ── Sign-in button ──
+    document.getElementById("google-signin-btn").addEventListener("click", async () => {
+      const errEl  = document.getElementById("auth-error");
+      const loadEl = document.getElementById("auth-loading");
+      errEl.style.display  = "none";
+      loadEl.style.display = "block";
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        loadEl.style.display = "none";
+        errEl.style.display  = "block";
+        errEl.textContent    = "Sign-in failed. Please try again.";
+        console.error(e);
+      }
+    });
+  </script>
+
+  <!-- React App (Babel-transpiled JSX) -->
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ─── Segment Definitions ─────────────────────────────────────────────────────
+    const SEGMENT_TEMPLATES = [
+      { id: "opening",  name: "Opening Soundscape",  defaultDuration: 3,  color: "#ff3b3b", emoji: "🎵",
+        hint: "Street voices / trending audio that sets the cultural moment" },
+      { id: "setup",    name: "The Setup",            defaultDuration: 5,  color: "#ff9500", emoji: "🎙️",
+        hint: "Host frames the tension with empathy — humanity first" },
+      { id: "bible",    name: "Bible Study",          defaultDuration: 10, color: "#8b7cf8", emoji: "📖",
+        hint: "Scripture study + cultural/scholarly context combined" },
+      { id: "faith",    name: "Faith Perspective",    defaultDuration: 10, color: "#4caf70", emoji: "✝️",
+        hint: "Christian leader / biblical scholar — what Scripture actually teaches" },
+      { id: "realtalk", name: "Real Talk",            defaultDuration: 10, color: "#e91e8c", emoji: "💬",
+        hint: "Influencer / peer / community member — lived experience, honest & vulnerable" },
+      { id: "listener", name: "Listener Voices",      defaultDuration: 10, color: "#ffd600", emoji: "📞",
+        hint: "Pre-recorded campus interviews + community voices" },
+      { id: "closing",  name: "Closing Reflection",   defaultDuration: 5,  color: "#29b6f6", emoji: "🌅",
+        hint: "Host synthesises, finds common ground, leaves something actionable" },
+      { id: "outro",    name: "Outro",                defaultDuration: 5,  color: "#ff6b35", emoji: "🎬",
+        hint: "Sign-off + curated music to close the show" },
+    ];
+
+    const TARGET_MINS = 70;
+
+    // ─── Utilities ───────────────────────────────────────────────────────────────
+    const makeEpisode = () => ({
+      id: `ep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: "Untitled Episode",
+      airDate: "",
+      topic: "",
+      guests: "",
+      notes: "",
+      segments: SEGMENT_TEMPLATES.map(t => ({
+        id: t.id, name: t.name, color: t.color, emoji: t.emoji, hint: t.hint,
+        duration: t.defaultDuration, guest: "", notes: "",
+      })),
+      createdAt: Date.now(),
+    });
+
+    const totalMins = segs => segs.reduce((a, s) => a + Number(s.duration || 0), 0);
+
+    const fmt = secs => {
+      const m = Math.floor(Math.abs(secs) / 60).toString().padStart(2, "0");
+      const s = (Math.abs(secs) % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    };
+
+    // ─── CSS ─────────────────────────────────────────────────────────────────────
+    const CSS = `
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080808;
+      --surf:     #111111;
+      --surf2:    #191919;
+      --surf3:    #212121;
+      --red:      #d90000;
+      --red-glow: rgba(217,0,0,0.35);
+      --gold:     #f0a500;
+      --gold-glow:rgba(240,165,0,0.3);
+      --white:    #f0ede8;
+      --muted:    #555;
+      --border:   #252525;
+      --green:    #3a9a5c;
+    }
+
+    html, body, #root { height: 100%; background: var(--bg); }
+
+    .app {
+      min-height: 100vh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--white);
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.055'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9000;
+      mix-blend-mode: overlay;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 62px;
+      background: var(--surf);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .logo { display: flex; align-items: center; gap: 6px; line-height: 1; }
+
+    .logo-thats {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 22px;
+      letter-spacing: 4px;
+      color: var(--white);
+      opacity: 0.85;
+    }
+
+    .logo-bs {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 34px;
+      color: var(--red);
+      letter-spacing: 5px;
+      text-shadow: 0 0 18px var(--red-glow), 0 0 40px rgba(217,0,0,0.15);
+    }
+
+    .logo-meta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-left: 8px;
+      border-left: 1px solid #2a2a2a;
+      margin-left: 4px;
+    }
+
+    .logo-subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    .logo-station {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-red   { background: var(--red); color: #fff; }
+    .btn-red:hover { background: #ff1010; box-shadow: 0 0 12px var(--red-glow); }
+
+    .btn-gold  { background: var(--gold); color: #000; font-weight: 700; }
+    .btn-gold:hover { background: #ffc72e; box-shadow: 0 0 12px var(--gold-glow); }
+
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--white); border-color: #444; }
+
+    .btn-sm { padding: 5px 12px; font-size: 9px; }
+
+    /* ── Layout ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surf);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-hd {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mono-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .ep-list { flex: 1; overflow-y: auto; }
+
+    .ep-item {
+      padding: 13px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+      position: relative;
+      border-left: 3px solid transparent;
+    }
+
+    .ep-item:hover { background: var(--surf2); }
+    .ep-item.active { background: #150505; border-left-color: var(--red); }
+
+    .ep-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--white);
+    }
+
+    .ep-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .ep-del {
+      position: absolute;
+      top: 50%; right: 10px;
+      transform: translateY(-50%);
+      opacity: 0;
+      background: transparent;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 13px;
+      transition: opacity 0.12s;
+      padding: 4px;
+    }
+
+    .ep-item:hover .ep-del { opacity: 1; }
+
+    /* ── Editor ── */
+    .editor {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 52px; opacity: 0.2; }
+    .empty-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #333;
+    }
+
+    /* ── Episode Header Card ── */
+    .ep-card {
+      background: var(--surf);
+      border: 1px solid var(--border);
+      padding: 24px 28px;
+      position: relative;
+    }
+
+    .ep-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--red), var(--gold));
+    }
+
+    .ep-title-input {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 38px;
+      letter-spacing: 4px;
+      color: var(--white);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      outline: none;
+      width: 100%;
+      padding-bottom: 4px;
+      transition: border-color 0.2s;
+    }
+
+    .ep-title-input:focus { border-bottom-color: var(--red); }
+    .ep-title-input::placeholder { color: #222; }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .field-input {
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      padding: 9px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field-input:focus { border-color: #444; }
+    .field-input::placeholder { color: #333; }
+    textarea.field-input { resize: vertical; min-height: 68px; line-height: 1.5; }
+
+    /* ── Runtime Bar ── */
+    .runtime-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 20px;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--gold);
+    }
+
+    .runtime-num {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 30px;
+      letter-spacing: 3px;
+      color: var(--gold);
+      text-shadow: 0 0 10px var(--gold-glow);
+      min-width: 80px;
+    }
+
+    .runtime-track { flex: 1; height: 3px; background: var(--border); }
+    .runtime-fill { height: 100%; transition: width 0.3s, background 0.3s; }
+
+    .runtime-cap {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    /* ── Segments ── */
+    .segs-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 22px;
+      letter-spacing: 4px;
+      color: var(--white);
+    }
+
+    .seg-cols {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: #333;
+      text-transform: uppercase;
+    }
+
+    .seg-row {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      margin-bottom: 6px;
+      background: var(--surf);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .seg-row:hover { border-color: #333; background: #131313; }
+
+    .seg-bar { width: 4px; flex-shrink: 0; }
+
+    .seg-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 210px 74px 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+    }
+
+    .seg-name-wrap { display: flex; align-items: center; gap: 10px; }
+    .seg-emoji { font-size: 20px; flex-shrink: 0; }
+
+    .seg-name-text { font-size: 13px; font-weight: 600; color: var(--white); line-height: 1.3; }
+
+    .seg-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      color: #3a3a3a;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .seg-dur {
+      width: 56px;
+      text-align: center;
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      color: var(--gold);
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .seg-dur:focus { border-color: var(--gold); }
+
+    .seg-input {
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 6px 10px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    .seg-input:focus { border-color: #3a3a3a; }
+    .seg-input::placeholder { color: #333; }
+
+    /* ── Broadcast Overlay ── */
+    .bcast {
+      position: fixed;
+      inset: 0;
+      background: #050505;
+      z-index: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 40px;
+      overflow: hidden;
+    }
+
+    .bcast::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+      pointer-events: none;
+    }
+
+    .bcast-air {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--red);
+    }
+
+    .bcast-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .bcast-dots { display: flex; gap: 8px; }
+    .bdot { width: 9px; height: 9px; border-radius: 50%; background: #222; transition: background 0.3s, box-shadow 0.3s; }
+    .bdot.done { background: var(--green); }
+    .bdot.active { background: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
+
+    .bcast-seg-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .bcast-seg-name {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 58px;
+      letter-spacing: 7px;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .bcast-guest {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: #555;
+      letter-spacing: 2px;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    .bcast-timer {
+      font-family: 'Space Mono', monospace;
+      font-size: 88px;
+      font-weight: 700;
+      letter-spacing: 10px;
+      line-height: 1;
+      transition: color 0.5s, text-shadow 0.5s;
+    }
+
+    .bcast-timer.normal { color: var(--gold); text-shadow: 0 0 40px var(--gold-glow), 0 0 80px rgba(240,165,0,0.12); }
+    .bcast-timer.urgent { color: var(--red); text-shadow: 0 0 40px var(--red-glow), 0 0 80px rgba(217,0,0,0.15); animation: pulse 0.8s ease-in-out infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+    .bcast-bar { width: min(480px, 90vw); height: 5px; background: #1a1a1a; }
+    .bcast-bar-fill { height: 100%; transition: width 1s linear, background 0.5s; }
+
+    .bcast-hint {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      color: #333;
+      text-align: center;
+      max-width: 480px;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .bcast-next {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #3a3a3a;
+    }
+
+    .bcast-controls { display: flex; gap: 12px; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+    @media (max-width: 800px) {
+      .seg-body { grid-template-columns: 1fr 60px; grid-template-rows: auto auto; }
+      .seg-input { display: none; }
+      .sidebar { width: 200px; min-width: 200px; }
+      .editor { padding: 16px; }
+    }
+    `;
+
+    // ─── Firebase helpers (set in window by the module script above) ─────────────
+    const { db, ref, onValue, set, remove, auth, signOut } = window.__firebase;
+
+    // ─── Firebase persistence ─────────────────────────────────────────────────────
+    function episodesRef(uid) {
+      return ref(db, `users/${uid}/episodes`);
+    }
+
+    function subscribeEpisodes(uid, callback) {
+      return onValue(episodesRef(uid), snapshot => {
+        const data = snapshot.val();
+        if (!data) { callback([]); return; }
+        // Firebase stores as object keyed by episode id; convert to sorted array
+        const arr = Object.values(data).sort((a, b) => b.createdAt - a.createdAt);
+        callback(arr);
+      });
+    }
+
+    async function saveEpisodesToFirebase(uid, episodes) {
+      // Convert array to object keyed by id for Firebase
+      const obj = {};
+      episodes.forEach(ep => { obj[ep.id] = ep; });
+      await set(episodesRef(uid), obj);
+    }
+
+    async function deleteEpisodeFromFirebase(uid, epId) {
+      await remove(ref(db, `users/${uid}/episodes/${epId}`));
+    }
+
+    // ─── Component ───────────────────────────────────────────────────────────────
+    function ThatsBS({ user }) {
+      const [episodes, setEpisodes] = useState([]);
+      const [selected, setSelected] = useState(null);
+      const [loading,  setLoading]  = useState(true);
+      const [saveStatus, setSaveStatus] = useState(""); // "", "saving", "saved", "error"
+
+      // Broadcast state
+      const [bcast, setBcast] = useState(false);
+      const [bIdx,  setBIdx]  = useState(0);
+      const [bElap, setBElap] = useState(0);
+      const [bRun,  setBRun]  = useState(false);
+      const timerRef    = useRef(null);
+      const saveTimerRef = useRef(null);
+      const isFirstLoad  = useRef(true);
+
+      // ── Expose setUser so module script can update on re-auth ──
+      useEffect(() => {
+        window.__setFirebaseUser = () => {}; // noop — user passed via prop
+      }, []);
+
+      // ── Subscribe to Firebase realtime updates ──
+      useEffect(() => {
+        setLoading(true);
+        const unsub = subscribeEpisodes(user.uid, eps => {
+          setEpisodes(eps);
+          setLoading(false);
+          isFirstLoad.current = false;
+        });
+        return () => unsub();
+      }, [user.uid]);
+
+      // ── Debounced save to Firebase ──
+      const scheduleSave = useCallback((eps) => {
+        if (isFirstLoad.current) return;
+        setSaveStatus("saving");
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(async () => {
+          try {
+            await saveEpisodesToFirebase(user.uid, eps);
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus(""), 2000);
+          } catch (e) {
+            console.error("Save failed", e);
+            setSaveStatus("error");
+          }
+        }, 800);
+      }, [user.uid]);
+
+      // ── Broadcast Timer ──
+      useEffect(() => {
+        if (bRun) {
+          timerRef.current = setInterval(() => setBElap(e => e + 1), 1000);
+        } else {
+          clearInterval(timerRef.current);
+        }
+        return () => clearInterval(timerRef.current);
+      }, [bRun]);
+
+      // ── Helpers ──
+      const currentEp = episodes.find(e => e.id === selected);
+
+      const updateEp = useCallback((id, changes) => {
+        setEpisodes(eps => {
+          const next = eps.map(e => e.id === id ? { ...e, ...changes } : e);
+          scheduleSave(next);
+          return next;
+        });
+      }, [scheduleSave]);
+
+      const updateSeg = useCallback((epId, segId, changes) => {
+        setEpisodes(eps => {
+          const next = eps.map(e => {
+            if (e.id !== epId) return e;
+            return { ...e, segments: e.segments.map(s => s.id === segId ? { ...s, ...changes } : s) };
+          });
+          scheduleSave(next);
+          return next;
+        });
+      }, [scheduleSave]);
+
+      const addEpisode = () => {
+        const ep = makeEpisode();
+        setEpisodes(eps => {
+          const next = [ep, ...eps];
+          scheduleSave(next);
+          return next;
+        });
+        setSelected(ep.id);
+      };
+
+      const deleteEpisode = async (id) => {
+        setEpisodes(eps => eps.filter(e => e.id !== id));
+        if (selected === id) setSelected(null);
+        try {
+          await deleteEpisodeFromFirebase(user.uid, id);
+        } catch (e) {
+          console.error("Delete failed", e);
+        }
+      };
+
+      const startBroadcast = () => {
+        setBIdx(0); setBElap(0); setBRun(false); setBcast(true);
+      };
+
+      const nextSegment = () => {
+        if (!currentEp) return;
+        if (bIdx < currentEp.segments.length - 1) {
+          setBIdx(i => i + 1);
+          setBElap(0);
+        } else {
+          setBcast(false); setBRun(false);
+        }
+      };
+
+      const handleSignOut = async () => {
+        await signOut(auth);
+      };
+
+      // ── Derived Broadcast Values ──
+      const bSeg      = currentEp?.segments[bIdx];
+      const bDurSecs  = (bSeg?.duration || 0) * 60;
+      const bRemaining = Math.max(0, bDurSecs - bElap);
+      const bPct      = bDurSecs > 0 ? Math.min(100, (bElap / bDurSecs) * 100) : 0;
+      const bUrgent   = bRemaining <= 60 && bRemaining > 0 && bRun;
+      const bNextSeg  = currentEp?.segments[bIdx + 1];
+
+      const total   = currentEp ? totalMins(currentEp.segments) : 0;
+      const overrun = total > TARGET_MINS;
+      const fillPct = Math.min(100, (total / TARGET_MINS) * 100);
+
+      // ── Render ──
+      if (loading) return (
+        <div style={{ background: "#080808", color: "#555", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Mono, monospace", fontSize: "11px", letterSpacing: "3px" }}>
+          LOADING...
+        </div>
+      );
+
+      return (
+        <>
+          <style>{CSS}</style>
+          <div className="app">
+
+            {/* ── TOP BAR ── */}
+            <div className="topbar">
+              <div className="logo">
+                <span className="logo-thats">THAT'S</span>
+                <span className="logo-bs">BS</span>
+                <div className="logo-meta">
+                  <span className="logo-subtitle">Episode Planner</span>
+                  <span className="logo-station">Shine FM 99.9</span>
+                </div>
+              </div>
+              <div className="topbar-actions">
+                {/* Save status */}
+                {saveStatus && (
+                  <span className={`save-status ${saveStatus}`}>
+                    {saveStatus === "saving" ? "SAVING..." : saveStatus === "saved" ? "✓ SAVED" : "⚠ SAVE ERROR"}
+                  </span>
+                )}
+
+                {selected && currentEp && (
+                  <button className="btn btn-gold" onClick={startBroadcast}>▶ BROADCAST MODE</button>
+                )}
+                <button className="btn btn-red" onClick={addEpisode}>+ NEW EPISODE</button>
+
+                {/* User badge */}
+                <div className="user-badge">
+                  {user.photoURL && <img src={user.photoURL} alt="" className="user-avatar" referrerPolicy="no-referrer" />}
+                  <span className="user-name">{user.displayName || user.email}</span>
+                  <button className="btn-signout" onClick={handleSignOut}>Sign out</button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── MAIN ── */}
+            <div className="main">
+
+              {/* ── SIDEBAR ── */}
+              <div className="sidebar">
+                <div className="sidebar-hd">
+                  <span className="mono-label">Episodes ({episodes.length})</span>
+                </div>
+                <div className="ep-list">
+                  {episodes.length === 0 && (
+                    <div style={{ padding: "24px 16px", color: "#2a2a2a", fontFamily: "Space Mono, monospace", fontSize: "10px", lineHeight: 1.8 }}>
+                      No episodes yet.<br />Hit + NEW EPISODE to begin.
+                    </div>
+                  )}
+                  {episodes.map(ep => (
+                    <div key={ep.id}
+                      className={`ep-item ${selected === ep.id ? "active" : ""}`}
+                      onClick={() => setSelected(ep.id)}
+                    >
+                      <div className="ep-title">{ep.title || "Untitled Episode"}</div>
+                      <div className="ep-meta">
+                        {ep.airDate
+                          ? new Date(ep.airDate + "T12:00:00").toLocaleDateString("en-KE", { day:"numeric", month:"short", year:"2-digit" })
+                          : "No date"
+                        } · {totalMins(ep.segments)} min
+                        {ep.topic && <span style={{ color: "#3a3a3a" }}> · {ep.topic.slice(0, 18)}{ep.topic.length > 18 ? "…" : ""}</span>}
+                      </div>
+                      <button className="ep-del" onClick={e => { e.stopPropagation(); deleteEpisode(ep.id); }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── EDITOR ── */}
+              {!selected || !currentEp ? (
+                <div className="editor">
+                  <div className="empty-state">
+                    <div className="empty-icon">🎙️</div>
+                    <div className="empty-text">Select or create an episode</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="editor">
+
+                  {/* Episode Card */}
+                  <div className="ep-card">
+                    <input
+                      className="ep-title-input"
+                      value={currentEp.title}
+                      placeholder="EPISODE TITLE"
+                      onChange={e => updateEp(currentEp.id, { title: e.target.value })}
+                    />
+                    <div className="meta-grid">
+                      <div className="field">
+                        <div className="field-label">Air Date</div>
+                        <input type="date" className="field-input" value={currentEp.airDate}
+                          onChange={e => updateEp(currentEp.id, { airDate: e.target.value })} />
+                      </div>
+                      <div className="field">
+                        <div className="field-label">Episode Topic</div>
+                        <input className="field-input" value={currentEp.topic}
+                          placeholder="e.g. Faith & Mental Health"
+                          onChange={e => updateEp(currentEp.id, { topic: e.target.value })} />
+                      </div>
+                      <div className="field full">
+                        <div className="field-label">Guests</div>
+                        <input className="field-input" value={currentEp.guests}
+                          placeholder="e.g. Dr. Auma Otieno (Bible Study), Kelvin M. (Real Talk)…"
+                          onChange={e => updateEp(currentEp.id, { guests: e.target.value })} />
+                      </div>
+                      <div className="field full">
+                        <div className="field-label">Production Notes</div>
+                        <textarea className="field-input" value={currentEp.notes}
+                          placeholder="Themes, reminders, angles, sound cues, scripture references…"
+                          onChange={e => updateEp(currentEp.id, { notes: e.target.value })} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Runtime Bar */}
+                  <div className="runtime-bar">
+                    <span className="mono-label">Runtime</span>
+                    <span className="runtime-num">{total} MIN</span>
+                    <div className="runtime-track">
+                      <div className="runtime-fill" style={{
+                        width: `${fillPct}%`,
+                        background: overrun ? "var(--red)" : "var(--gold)"
+                      }} />
+                    </div>
+                    <span className="runtime-cap" style={{ color: overrun ? "var(--red)" : "var(--muted)" }}>
+                      {overrun ? `+${total - TARGET_MINS} OVER` : `${TARGET_MINS - total} MIN LEFT`} / {TARGET_MINS} MIN
+                    </span>
+                  </div>
+
+                  {/* Segments */}
+                  <div>
+                    <div className="segs-hd">
+                      <span className="section-title">SEGMENTS</span>
+                      <span className="seg-cols">Min · Guest / Source · Notes</span>
+                    </div>
+
+                    {currentEp.segments.map((seg, i) => (
+                      <div key={seg.id} className="seg-row">
+                        <div className="seg-bar" style={{ background: seg.color }} />
+                        <div className="seg-body">
+                          <div className="seg-name-wrap">
+                            <span className="seg-emoji">{seg.emoji}</span>
+                            <div>
+                              <div className="seg-name-text">{seg.name}</div>
+                              <div className="seg-num">SEG {String(i + 1).padStart(2, "0")}</div>
+                            </div>
+                          </div>
+                          <input
+                            type="number"
+                            className="seg-dur"
+                            value={seg.duration}
+                            min={1} max={90}
+                            onChange={e => updateSeg(currentEp.id, seg.id, { duration: Number(e.target.value) })}
+                          />
+                          <input
+                            className="seg-input"
+                            value={seg.guest}
+                            placeholder={i === 0 ? "Audio source / clip" : i === 1 ? "Host only" : "Guest / Source"}
+                            onChange={e => updateSeg(currentEp.id, seg.id, { guest: e.target.value })}
+                          />
+                          <input
+                            className="seg-input"
+                            value={seg.notes}
+                            placeholder={seg.hint}
+                            onChange={e => updateSeg(currentEp.id, seg.id, { notes: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+            {/* ── BROADCAST MODE OVERLAY ── */}
+            {bcast && currentEp && bSeg && (
+              <div className="bcast">
+                <div className="bcast-air">
+                  <div className="bcast-dot" />
+                  ON AIR — SHINE FM 99.9
+                </div>
+
+                <div className="bcast-dots">
+                  {currentEp.segments.map((s, i) => (
+                    <div key={s.id} className={`bdot ${i < bIdx ? "done" : i === bIdx ? "active" : ""}`} />
+                  ))}
+                </div>
+
+                <div>
+                  <div className="bcast-seg-num" style={{ color: bSeg.color }}>
+                    {String(bIdx + 1).padStart(2, "0")} / {String(currentEp.segments.length).padStart(2, "0")}
+                  </div>
+                  <div className="bcast-seg-name" style={{ color: bSeg.color }}>
+                    {bSeg.emoji} {bSeg.name}
+                  </div>
+                  {bSeg.guest && <div className="bcast-guest">with {bSeg.guest}</div>}
+                </div>
+
+                <div className={`bcast-timer ${bUrgent ? "urgent" : "normal"}`}>
+                  {fmt(bRemaining)}
+                </div>
+
+                <div className="bcast-bar">
+                  <div className="bcast-bar-fill" style={{
+                    width: `${bPct}%`,
+                    background: bUrgent ? "var(--red)" : bSeg.color
+                  }} />
+                </div>
+
+                {bSeg.notes ? (
+                  <div className="bcast-hint">"{bSeg.notes}"</div>
+                ) : (
+                  <div className="bcast-hint">{bSeg.hint}</div>
+                )}
+
+                {bNextSeg ? (
+                  <div className="bcast-next">NEXT → {bNextSeg.emoji} {bNextSeg.name}</div>
+                ) : (
+                  <div className="bcast-next" style={{ color: "var(--gold)" }}>FINAL SEGMENT</div>
+                )}
+
+                <div className="bcast-controls">
+                  <button className="btn btn-ghost" onClick={() => { setBcast(false); setBRun(false); }}>
+                    EXIT
+                  </button>
+                  <button
+                    className="btn btn-red"
+                    style={{ minWidth: 130 }}
+                    onClick={() => setBRun(r => !r)}
+                  >
+                    {bRun ? "⏸ PAUSE" : "▶ START"}
+                  </button>
+                  <button className="btn btn-gold" onClick={nextSegment}>
+                    NEXT SEG →
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </>
+      );
+    }
+
+    // ── Mount when Firebase is ready ──
+    window.addEventListener("firebase-ready", ({ detail: { user } }) => {
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+
+      function App() {
+        const [currentUser, setCurrentUser] = React.useState(user);
+        window.__setFirebaseUser = setCurrentUser;
+        return <ThatsBS user={currentUser} />;
+      }
+
+      root.render(<App />);
+    });
+  </script>
+</body>
+</html>
