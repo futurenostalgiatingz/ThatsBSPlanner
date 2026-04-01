@@ -317,7 +317,7 @@
         hint: "Sign-off + curated music to close the show" },
     ];
 
-    const TARGET_MINS = 70;
+    const TARGET_MINS = 80;
 
     // ─── Utilities ───────────────────────────────────────────────────────────────
     const makeEpisode = () => ({
@@ -706,9 +706,10 @@
     .seg-body {
       flex: 1;
       display: grid;
-      grid-template-columns: 210px 74px 1fr 1fr;
-      gap: 12px;
-      align-items: center;
+      grid-template-columns: 210px 74px 1fr;
+      grid-template-rows: auto auto;
+      gap: 8px 12px;
+      align-items: start;
       padding: 12px 16px;
     }
 
@@ -756,6 +757,25 @@
     .seg-input:focus { border-color: #3a3a3a; }
     .seg-input::placeholder { color: #333; }
 
+    .seg-notes {
+      grid-column: 1 / -1;
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      border-left: 3px solid;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 7px 10px;
+      outline: none;
+      width: 100%;
+      resize: vertical;
+      min-height: 52px;
+      transition: border-color 0.2s;
+    }
+    .seg-notes:focus { border-color: #3a3a3a; }
+    .seg-notes::placeholder { color: #2a2a2a; font-style: italic; }
+
     /* ── Broadcast Overlay ── */
     .bcast {
       position: fixed;
@@ -766,8 +786,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 28px;
-      padding: 40px;
+      gap: 18px;
+      padding: 36px;
       overflow: hidden;
     }
 
@@ -831,20 +851,38 @@
 
     .bcast-timer {
       font-family: 'Space Mono', monospace;
-      font-size: 88px;
+      font-size: clamp(48px, 7vw, 64px);
       font-weight: 700;
-      letter-spacing: 10px;
+      letter-spacing: 8px;
       line-height: 1;
       transition: color 0.5s, text-shadow 0.5s;
     }
 
-    .bcast-timer.normal { color: var(--gold); text-shadow: 0 0 40px var(--gold-glow), 0 0 80px rgba(240,165,0,0.12); }
-    .bcast-timer.urgent { color: var(--red); text-shadow: 0 0 40px var(--red-glow), 0 0 80px rgba(217,0,0,0.15); animation: pulse 0.8s ease-in-out infinite; }
+    .bcast-timer.normal { color: var(--gold); text-shadow: 0 0 30px var(--gold-glow), 0 0 60px rgba(240,165,0,0.1); }
+    .bcast-timer.urgent { color: var(--red); text-shadow: 0 0 30px var(--red-glow), 0 0 60px rgba(217,0,0,0.12); animation: pulse 0.8s ease-in-out infinite; }
 
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
     .bcast-bar { width: min(480px, 90vw); height: 5px; background: #1a1a1a; }
     .bcast-bar-fill { height: 100%; transition: width 1s linear, background 0.5s; }
+
+    /* Talking points panel */
+    .bcast-notes {
+      width: min(560px, 88vw);
+      background: #0d0d0d;
+      border: 1px solid #1e1e1e;
+      border-left: 3px solid;
+      padding: 12px 16px;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+    .bcast-notes-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: rgba(240,237,232,0.7);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
 
     .bcast-hint {
       font-family: 'Space Mono', monospace;
@@ -1181,7 +1219,7 @@
                   <div>
                     <div className="segs-hd">
                       <span className="section-title">SEGMENTS</span>
-                      <span className="seg-cols">Min · Guest / Source · Notes</span>
+                      <span className="seg-cols">Min · Guest / Source · Talking Points</span>
                     </div>
 
                     {currentEp.segments.map((seg, i) => (
@@ -1208,8 +1246,9 @@
                             placeholder={i === 0 ? "Audio source / clip" : i === 1 ? "Host only" : "Guest / Source"}
                             onChange={e => updateSeg(currentEp.id, seg.id, { guest: e.target.value })}
                           />
-                          <input
-                            className="seg-input"
+                          <textarea
+                            className="seg-notes"
+                            style={{ borderLeftColor: seg.color }}
                             value={seg.notes}
                             placeholder={seg.hint}
                             onChange={e => updateSeg(currentEp.id, seg.id, { notes: e.target.value })}
@@ -1259,7 +1298,9 @@
                 </div>
 
                 {bSeg.notes ? (
-                  <div className="bcast-hint">"{bSeg.notes}"</div>
+                  <div className="bcast-notes" style={{ borderLeftColor: bSeg.color }}>
+                    <div className="bcast-notes-text">{bSeg.notes}</div>
+                  </div>
                 ) : (
                   <div className="bcast-hint">{bSeg.hint}</div>
                 )}
